@@ -1,0 +1,138 @@
+name: Olive CLI Scanner Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+    inputs:
+      analyze-only:
+        description: "분석만 수행 (아티팩트/코멘트 생략)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  olive-scan:
+    name: Olive CLI Scan Test
+    runs-on: ubuntu-latest
+    outputs:
+      olive-version: ${{ steps.olive-cli-scanner.outputs.olive-version }}
+      analysis-completed: ${{ steps.olive-cli-scanner.outputs.analysis-completed }}
+      artifact-urls: ${{ steps.olive-cli-scanner.outputs.artifact-urls }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Olive CLI Scanner
+        id: olive-cli-scanner
+        uses: ./
+        with:
+          olive-token: ${{ secrets.OLIVE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          environment: "sandbox"
+
+  post-analysis:
+    name: Post Analysis
+    needs: olive-scan
+    runs-on: ubuntu-latest
+    if: needs.olive-scan.outputs.analysis-completed == 'true'
+
+    steps:
+      - name: Check Analysis Results
+        run: |
+          echo "✅ Olive CLI 분석이 완료되었습니다."
+          echo "📦 사용된 Olive CLI 버전: ${{ needs.olive-scan.outputs.olive-version }}"
+          echo "🔗 아티팩트 URL: ${{ needs.olive-scan.outputs.artifact-urls }}"
+
+      - name: Download Analysis Results
+        uses: actions/download-artifact@v3
+        with:
+          name: dependency-analysis
+          path: ./olive-results
+
+      - name: Download Apply Analysis Results
+        uses: actions/download-artifact@v3
+        with:
+          name: apply-analysis
+          path: ./olive-apply-results
+
+      - name: Download Configuration Files
+        uses: actions/download-artifact@v3
+        with:
+          name: local-config.yaml
+          path: ./olive-config
+
+      - name: Process Analysis Results
+        run: |
+          echo "📊 다운로드된 분석 결과:"
+          ls -la ./olive-results/
+
+          # CSV 파일이 있는 경우 간단한 통계 출력
+          if [ -f "./olive-results/dependency.csv" ]; then
+            echo "📈 의존성 개수:"
+            wc -l ./olive-results/dependency.csv
+          fi
+
+          # JSON 파일이 있는 경우 jq로 파싱 (예시)
+          if [ -f "./olive-results/dependency.json" ]; then
+            echo "📋 의존성 JSON 구조 확인:"
+            cat ./olive-results/dependency.json | jq '.' 2>/dev/null || cat ./olive-results/dependency.json
+          fi
+
+      - name: Process Apply Analysis Results
+        run: |
+          echo "📊 다운로드된 적용 분석 결과:"
+          ls -la ./olive-apply-results/
+
+          # 의존성 CSV 파일 확인
+          if [ -f "./olive-apply-results/dependency.csv" ]; then
+            echo "📈 적용 의존성 개수:"
+            wc -l ./olive-apply-results/dependency.csv
+          fi
+
+          # 의존성 JSON 파일 확인
+          if [ -f "./olive-apply-results/dependency.json" ]; then
+            echo "📋 적용 의존성 JSON 구조 확인:"
+            cat ./olive-apply-results/dependency.json | jq '.' 2>/dev/null || cat ./olive-apply-results/dependency.json
+          fi
+
+          # 매핑 CSV 파일 확인
+          if [ -f "./olive-apply-results/mapping.csv" ]; then
+            echo "📈 적용 매핑 개수:"
+            wc -l ./olive-apply-results/mapping.csv
+          fi
+
+          # 매핑 JSON 파일 확인
+          if [ -f "./olive-apply-results/mapping.json" ]; then
+            echo "📋 적용 매핑 JSON 구조 확인:"
+            cat ./olive-apply-results/mapping.json | jq '.' 2>/dev/null || cat ./olive-apply-results/mapping.json
+          fi
+
+          # 언매핑 CSV 파일 확인
+          if [ -f "./olive-apply-results/unmapping.csv" ]; then
+            echo "📈 언매핑 개수:"
+            wc -l ./olive-apply-results/unmapping.csv
+            echo "📋 언매핑 내용:"
+            cat ./olive-apply-results/unmapping.csv
+          fi
+
+      - name: Check Configuration Settings
+        run: |
+          echo "📝 Olive 설정 파일 확인:"
+          ls -la ./olive-config/
+
+          if [ -f "./olive-config/local-config.yaml" ]; then
+            echo "⚙️ 분석 설정 내용:"
+            cat ./olive-config/local-config.yaml
+            
+            # YAML 파일에서 주요 설정 값 추출 (예시)
+            echo "🔍 주요 설정 정보:"
+            grep -E "name:|version:|language:|path:" ./olive-config/local-config.yaml
+          fi

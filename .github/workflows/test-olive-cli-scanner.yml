@@ -51,19 +51,19 @@ jobs:
           echo "🔗 아티팩트 URL: ${{ needs.olive-scan.outputs.artifact-urls }}"
 
       - name: Download Analysis Results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dependency-analysis
           path: ./olive-results
 
       - name: Download Apply Analysis Results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: apply-analysis
           path: ./olive-apply-results
 
       - name: Download Configuration Files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: local-config.yaml
           path: ./olive-config

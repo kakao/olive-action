@@ -7,7 +7,7 @@ branding:
 
 inputs:
   olive-project-name:
-    description: "Olive 프로젝트 이름 (Only 100 characters or less, English, '-', '' and numbers can be entered)"
+    description: "Olive 프로젝트 이름 (100자 이하, 영문, '-', 공백 및 숫자만 입력 가능)"
     required: false
     default: ""
   github-token:
@@ -55,7 +55,7 @@ outputs:
     description: "라이선스 분석 완료 여부"
     value: ${{ steps.analyze-license.outputs.completed }}
   apply-completed:
-    description: "적용 분석 완료 여부"
+    description: "OLIVE 적용 완료 여부"
     value: ${{ steps.analyze-apply.outputs.completed }}
   artifact-urls:
     description: "업로드된 아티팩트 URL들"

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 INPUT_PROJECT_NAME=""
 GITHUB_REPOSITORY=""

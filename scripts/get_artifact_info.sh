@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 GITHUB_SERVER_URL=""
 GITHUB_REPOSITORY=""

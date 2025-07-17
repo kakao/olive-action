@@ -38,7 +38,6 @@ done
 
 echo '📋 Step 2: Initializing Olive CLI...'
 
-# user-config-path가 제공되었는지 확인
 if [ -n "$USER_CONFIG_PATH" ] && [ -f "$USER_CONFIG_PATH" ]; then
   echo "🔧 사용자 정의 config 파일을 사용합니다: $USER_CONFIG_PATH"
   olive-cli init "$PROJECT_NAME" -t=$OLIVE_TOKEN -s $SOURCE_PATH -f -d -c $USER_CONFIG_PATH

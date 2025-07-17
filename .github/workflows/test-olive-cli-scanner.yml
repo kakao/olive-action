@@ -36,7 +36,6 @@ jobs:
         with:
           olive-token: ${{ secrets.OLIVE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          environment: "sandbox"
 
   post-analysis:
     name: Post Analysis

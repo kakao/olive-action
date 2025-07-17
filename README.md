@@ -107,15 +107,15 @@ jobs:
 사용자 정의 config 파일(user-config.yaml) 예시:
 
 ```yaml
-isOpenSource: true
-excludePaths:
+isOpenSource: true # 오픈소스 프로젝트 여부
+excludePaths: # 분석에서 제외할 경로 목록
   - "node_modules"
   - ".git"
   - "build"
-analysisType: "PARSER"
-onlyDirect: false
-gradleBuildVariant: "debug"
-excludeGradle:
+analysisType: "PARSER" # 분석 유형 설정 (PARSER: 소스코드 파서 기반 분석, BUILDER: 빌드 결과물 분석)
+onlyDirect: false # 직접 의존성만 분석할지 여부 (false: 모든 의존성 분석)
+gradleBuildVariant: "debug" # Gradle 프로젝트의 빌드 변형 설정
+excludeGradle: # Gradle 분석 시 제외할 설정 목록
   - "testImplementation"
 ```
 
@@ -123,7 +123,7 @@ excludeGradle:
 
 이 액션은 다음과 같은 아티팩트를 생성합니다:
 
-- **local-config.yaml**: OLIVE CLI 설정 파일 (local-config.yaml)
+- **local-config.yaml**: OLIVE CLI 설정 파일
 - **dependency-analysis**: 의존성 분석 결과
   - dependency.csv: CSV 형식의 의존성 목록
   - dependency.json: JSON 형식의 의존성 상세 정보
@@ -172,8 +172,8 @@ PR에 자동으로 생성되는 코멘트는 다음 정보를 포함합니다:
 
 # Requirements
 
-- 이 액션은 Docker가 설치된 러너에서 실행되어야 합니다
-- OLIVE 토큰이 유효해야 합니다
+- 이 액션은 Docker가 실행 가능한 러너에서 실행되어야 합니다
+- OLIVE API 토큰이 유효해야 합니다. [토큰 사용하기 안내 참고](https://olive.kakao.com/docs/my-page/token)
 
 # Contributions
 

@@ -83,6 +83,7 @@ runs:
         docker run -d --name olive-container \
           -e OLIVE_PROJECT_NAME="${{ steps.set-project-name.outputs.project-name }}" \
           -e OLIVE_TOKEN="${{ inputs.olive-token }}" \
+          -e GITHUB_OUTPUT="/tmp/github_output" \
           -v ${{ github.workspace }}:/home/deploy/repository \
           -v ${{ github.action_path }}/scripts:/olive-scripts \
           -w /home/deploy/repository \
@@ -108,7 +109,11 @@ runs:
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_analyze.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Upload dependency analysis results
       if: inputs.analyze-only == 'false'
@@ -126,14 +131,22 @@ runs:
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_component.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Step 5 - OLIVE CLI license
       id: analyze-license
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_license.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Step 6 - OLIVE CLI apply
       if: inputs.analyze-only == 'false'
@@ -141,7 +154,11 @@ runs:
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_apply.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Upload apply results
       if: inputs.analyze-only == 'false'

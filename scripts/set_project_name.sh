@@ -28,4 +28,8 @@ else
   PROJECT_NAME="$INPUT_PROJECT_NAME"
   echo "지정된 프로젝트 이름 사용: $PROJECT_NAME"
 fi
-echo "project-name=$PROJECT_NAME" >> $GITHUB_OUTPUT 
+if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+  echo "project-name=$PROJECT_NAME" >> $GITHUB_OUTPUT
+else
+  echo "::set-output name=project-name::$PROJECT_NAME"
+fi 

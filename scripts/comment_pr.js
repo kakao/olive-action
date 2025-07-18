@@ -164,7 +164,7 @@ async function generateOliveScanUrl(fs, core) {
 
   try {
     console.log("🔍 OLIVE scan URL 생성 시작...")
-    const host = getOliveHost(core)
+    const host = "https://olive.kakao.com"
     if (!host) {
       console.log("❌ host 정보가 없어 URL을 생성할 수 없음")
       return null
@@ -182,26 +182,6 @@ async function generateOliveScanUrl(fs, core) {
   }
 
   return oliveScanUrl
-}
-
-/**
- * 환경에 따른 OLIVE 호스트 URL 가져오기
- * @param {Object} core - @actions/core 객체
- * @returns {string|null} OLIVE 호스트 URL
- */
-function getOliveHost(core) {
-  const environment = core.getInput("environment") || "prod"
-  console.log(`🌐 Environment: ${environment}`)
-
-  switch (environment) {
-    case "dev":
-      return "https://olive-dev.devel.kakao.com"
-    case "sandbox":
-      return "https://olive-sandbox.devel.kakao.com"
-    case "prod":
-    default:
-      return "https://olive.kakao.com"
-  }
 }
 
 /**

@@ -221,6 +221,26 @@ runs:
             }
           });
 
+    - name: Comment PR with OLIVE CLI Scanner Failure
+      if: failure() && github.event_name == 'pull_request' && inputs.comment-on-pr == 'true'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const script = require('${{ github.action_path }}/scripts/comment_pr_failure.js');
+          await script({
+            github, 
+            context, 
+            core: {
+              getInput: (name) => {
+                const inputs = {
+                  'project-name': '${{ steps.set-project-name.outputs.project-name }}',
+                };
+                return inputs[name];
+              }
+            }
+          });
+
     - name: Clean up container
       if: always()
       shell: bash

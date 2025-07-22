@@ -1,4 +1,4 @@
-name: Olive CLI Scanner Test
+name: Olive Scanner Test
 
 on:
   pull_request:

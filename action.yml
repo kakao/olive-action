@@ -90,7 +90,7 @@ runs:
           -v ${{ github.workspace }}:/home/deploy/repository \
           -v ${{ github.action_path }}/scripts:/olive-scripts \
           -w /home/deploy/repository \
-          idock.daumkakao.io/osa_olive/ortsdk:all \
+          officialkakao/olive-action:v1.0.0 \
           tail -f /dev/null
 
     - name: Step 1 - Verify source location

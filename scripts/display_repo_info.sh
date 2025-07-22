@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 GITHUB_REPOSITORY=""
 GITHUB_BRANCH=""

@@ -1,13 +1,8 @@
-/**
- * OLIVE CLI 스캔 결과를 PR에 코멘트로 추가하는 스크립트
- */
 module.exports = async ({ github, context, core }) => {
   const fs = require("fs")
 
-  // 입력값 가져오기
   const inputData = getInputData(core)
 
-  // 파일에서 정보 읽기
   const {
     oliveVersion,
     mappingComponentsInfo,
@@ -17,10 +12,8 @@ module.exports = async ({ github, context, core }) => {
     hasLicenses,
   } = await readOliveData(fs, inputData.oliveVersion)
 
-  // OLIVE scan URL 생성
   const oliveScanUrl = await generateOliveScanUrl(fs, core)
 
-  // PR 코멘트 생성
   const commentBody = generateCommentBody({
     oliveVersion,
     projectName: inputData.projectName,
@@ -33,7 +26,6 @@ module.exports = async ({ github, context, core }) => {
     unmappingDependenciesInfo,
   })
 
-  // PR에 코멘트 작성
   await createOrUpdateComment(github, context, commentBody)
 }
 
@@ -65,7 +57,6 @@ async function readOliveData(fs, defaultVersion) {
   let hasLicenses = false
 
   try {
-    // 버전 정보 파일에서 읽기
     if (fs.existsSync(".olive/1/olive_version.txt")) {
       oliveVersion = fs.readFileSync(".olive/1/olive_version.txt", "utf8").trim()
       console.log("📦 파일에서 읽은 OLIVE CLI 버전:", oliveVersion)
@@ -73,21 +64,18 @@ async function readOliveData(fs, defaultVersion) {
       console.log("⚠️ 버전 정보 파일을 찾을 수 없습니다. 기본값 사용:", oliveVersion)
     }
 
-    // 컴포넌트 매핑 정보 읽기
     mappingComponentsInfo = readFileWithFallback(
       fs,
       ".olive/1/mapping_components.txt",
       "정보를 불러올 수 없습니다."
     )
 
-    // 의존성 정보 읽기
     unmappingDependenciesInfo = readFileWithFallback(
       fs,
       ".olive/1/unmapping_dependencies.txt",
       "정보를 불러올 수 없습니다."
     )
 
-    // 라이선스 정보 읽기 및 분석
     const licenseResult = analyzeLicenseInfo(fs)
     licenseInfo = licenseResult.licenseInfo
     hasLicenseIssue = licenseResult.hasLicenseIssue
@@ -116,7 +104,6 @@ async function readOliveData(fs, defaultVersion) {
 function readFileWithFallback(fs, filePath, defaultValue) {
   if (fs.existsSync(filePath)) {
     const content = fs.readFileSync(filePath, "utf8").trim()
-    // 빈 줄 제거
     return content.replace(/^\s*[\r\n]/gm, "")
   }
   return defaultValue
@@ -134,14 +121,11 @@ function analyzeLicenseInfo(fs) {
 
   if (fs.existsSync(".olive/1/license_info.txt")) {
     licenseInfo = fs.readFileSync(".olive/1/license_info.txt", "utf8").trim()
-    // 빈 줄 제거
     licenseInfo = licenseInfo.replace(/^\s*[\r\n]/gm, "")
 
-    // 라이선스가 있는지 확인 (Licenses: [0] 형식이면 라이선스 없음)
     hasLicenses = !licenseInfo.includes("Licenses: [0]")
 
     if (hasLicenses) {
-      // 라이선스 이슈 확인
       hasLicenseIssue = checkLicenseIssues(licenseInfo)
       console.log("라이선스 이슈 확인:", hasLicenseIssue ? "이슈 있음" : "이슈 없음")
     } else {
@@ -158,10 +142,8 @@ function analyzeLicenseInfo(fs) {
  * @returns {boolean} 이슈 존재 여부
  */
 function checkLicenseIssues(licenseInfo) {
-  // 이슈가 있는 라이선스 키워드 목록 (GPL, AGPL 등 주의가 필요한 라이선스)
   const issueKeywords = ["GPL", "AGPL", "LGPL", "SSPL", "CDDL", "MPL", "EPL", "CPL", "UNKNOWN"]
 
-  // 이슈가 있는 라이선스 찾기
   for (const keyword of issueKeywords) {
     if (licenseInfo.includes(keyword)) {
       return true
@@ -182,22 +164,18 @@ async function generateOliveScanUrl(fs, core) {
 
   try {
     console.log("🔍 OLIVE scan URL 생성 시작...")
-
-    // environment 값에 따라 host 설정
-    const host = getOliveHost(core)
+    const host = "https://olive.kakao.com"
     if (!host) {
       console.log("❌ host 정보가 없어 URL을 생성할 수 없음")
       return null
     }
 
-    // 아티팩트 경로에서 config 파일 찾기
     const configPath = findConfigFile(fs)
     if (!configPath) {
       console.log("❌ local-config.yaml 파일을 찾을 수 없음")
       return null
     }
 
-    // URL 생성
     oliveScanUrl = extractScanUrlFromConfig(fs, configPath, host)
   } catch (error) {
     console.error("OLIVE scan URL 생성 오류:", error)
@@ -207,32 +185,11 @@ async function generateOliveScanUrl(fs, core) {
 }
 
 /**
- * 환경에 따른 OLIVE 호스트 URL 가져오기
- * @param {Object} core - @actions/core 객체
- * @returns {string|null} OLIVE 호스트 URL
- */
-function getOliveHost(core) {
-  const environment = core.getInput("environment") || "prod"
-  console.log(`🌐 Environment: ${environment}`)
-
-  switch (environment) {
-    case "dev":
-      return "https://olive-dev.devel.kakao.com"
-    case "sandbox":
-      return "https://olive-sandbox.devel.kakao.com"
-    case "prod":
-    default:
-      return "https://olive.kakao.com"
-  }
-}
-
-/**
  * config 파일 경로 찾기
  * @param {Object} fs - Node.js fs 모듈
  * @returns {string|null} 파일 경로 또는 null
  */
 function findConfigFile(fs) {
-  // 기본 아티팩트 경로
   const artifactPath = "local-config.yaml"
   console.log(`🔍 아티팩트에서 다운로드한 local-config.yaml 파일 확인: ${artifactPath}`)
 
@@ -241,7 +198,6 @@ function findConfigFile(fs) {
     return artifactPath
   }
 
-  // 대체 경로 확인
   const localConfigPath = ".olive/local-config.yaml"
   console.log(`🔍 대체 경로 확인: ${localConfigPath}`)
 
@@ -291,7 +247,6 @@ function extractScanUrlFromConfig(fs, configPath, host) {
  * @returns {string} 코멘트 본문
  */
 function generateCommentBody(data) {
-  // 라이선스 이슈 경고 문구
   let licenseWarning = ""
   if (data.hasLicenses) {
     licenseWarning = data.hasLicenseIssue
@@ -299,7 +254,6 @@ function generateCommentBody(data) {
       : "\n\n✅ 전부 허용적인 라이선스로 고지 의무만 발생합니다."
   }
 
-  // OLIVE scan 결과 링크 추가
   const oliveScanLink = data.oliveScanUrl
     ? `- 🔗 OLIVE 분석결과: [OLIVE scan 결과 자세히보기](${data.oliveScanUrl})\n`
     : ""

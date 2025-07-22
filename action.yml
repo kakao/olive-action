@@ -7,7 +7,7 @@ branding:
 
 inputs:
   olive-project-name:
-    description: "Olive 프로젝트 이름 (Only 100 characters or less, English, '-', '' and numbers can be entered)"
+    description: "Olive 프로젝트 이름 (100자 이하, 영문, '-', 공백 및 숫자만 입력 가능)"
     required: false
     default: ""
   github-token:
@@ -36,10 +36,6 @@ inputs:
     description: "분석만 수행하고 아티팩트 업로드/PR 코멘트 생략"
     required: false
     default: "false"
-  environment:
-    description: "OLIVE CLI 환경 설정 (prod, dev, sandbox)"
-    required: false
-    default: "prod"
 
 outputs:
   olive-version:
@@ -55,7 +51,7 @@ outputs:
     description: "라이선스 분석 완료 여부"
     value: ${{ steps.analyze-license.outputs.completed }}
   apply-completed:
-    description: "적용 분석 완료 여부"
+    description: "OLIVE 적용 완료 여부"
     value: ${{ steps.analyze-apply.outputs.completed }}
   artifact-urls:
     description: "업로드된 아티팩트 URL들"
@@ -87,6 +83,7 @@ runs:
         docker run -d --name olive-container \
           -e OLIVE_PROJECT_NAME="${{ steps.set-project-name.outputs.project-name }}" \
           -e OLIVE_TOKEN="${{ inputs.olive-token }}" \
+          -e GITHUB_OUTPUT="/tmp/github_output" \
           -v ${{ github.workspace }}:/home/deploy/repository \
           -v ${{ github.action_path }}/scripts:/olive-scripts \
           -w /home/deploy/repository \
@@ -105,7 +102,6 @@ runs:
           --project-name \"${{ steps.set-project-name.outputs.project-name }}\" \
           --olive-token ${{ inputs.olive-token }} \
           --source-path ${{ inputs.source-path }} \
-          --environment ${{ inputs.environment }} \
           --user-config-path \"${{ inputs.user-config-path }}\""
 
     - name: Step 3 - Olive CLI analyze
@@ -113,11 +109,15 @@ runs:
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_analyze.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Upload dependency analysis results
       if: inputs.analyze-only == 'false'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dependency-analysis
         path: |
@@ -131,14 +131,22 @@ runs:
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_component.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Step 5 - OLIVE CLI license
       id: analyze-license
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_license.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Step 6 - OLIVE CLI apply
       if: inputs.analyze-only == 'false'
@@ -146,11 +154,15 @@ runs:
       shell: bash
       run: |
         docker exec olive-container sh -c "/olive-scripts/olive_cli_apply.sh"
-        echo "completed=true" >> $GITHUB_OUTPUT
+        if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+          echo "completed=true" >> $GITHUB_OUTPUT
+        else
+          echo "::set-output name=completed::true"
+        fi
 
     - name: Upload apply results
       if: inputs.analyze-only == 'false'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: apply-analysis
         path: |
@@ -164,7 +176,7 @@ runs:
 
     - name: Upload local-config.yaml
       if: inputs.analyze-only == 'false'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: local-config.yaml
         path: .olive/local-config.yaml
@@ -203,7 +215,6 @@ runs:
                   'olive-version': '${{ steps.olive-version.outputs.version }}' || 'Unknown',
                   'run-url': '${{ steps.artifact-info.outputs.urls }}',
                   'project-name': '${{ steps.set-project-name.outputs.project-name }}',
-                  'environment': '${{ inputs.environment }}'
                 };
                 return inputs[name];
               }

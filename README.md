@@ -150,7 +150,7 @@ excludeGradle: ## Gradle 빌드 수행시 제외할 모듈 이름
 
 이 액션은 다음과 같은 아티팩트를 생성합니다:
 
-- **local-config.yaml**: OLIVE CLI 설정 파일 (local-config.yaml)
+- **local-config.yaml**: OLIVE CLI 설정 파일
 - **dependency-analysis**: 의존성 분석 결과
   - dependency.csv: CSV 형식의 의존성 목록
   - dependency.json: JSON 형식의 의존성 상세 정보
@@ -186,6 +186,8 @@ PR에 자동으로 생성되는 코멘트는 다음 정보를 포함합니다:
 ## 참고사항
 
 - 이 액션은 github.com에 정의된 github action 정책을 따릅니다.
+- 이 액션은 Docker가 실행 가능한 러너에서 실행되어야 합니다
+- OLIVE API 토큰이 유효해야 합니다. [토큰 사용하기 안내 참고](https://olive.kakao.com/docs/my-page/token)
 
 ## License
 

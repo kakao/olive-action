@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 GITHUB_SERVER_URL=""
 GITHUB_REPOSITORY=""
@@ -26,4 +27,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-echo "urls=$RUN_URL" >> $GITHUB_OUTPUT 
+if [ -n "$GITHUB_OUTPUT" ] && [ -f "$GITHUB_OUTPUT" ]; then
+  echo "urls=$RUN_URL" >> $GITHUB_OUTPUT
+else
+  echo "::set-output name=urls::$RUN_URL"
+fi 

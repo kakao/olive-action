@@ -1,4 +1,4 @@
-# OLIVE CLI Scanner Action V1
+# OLIVE CLI Scanner Action
 
 Kakao [OLIVE CLI](https://github.com/kakao/olive-cli)를 사용하여 소스코드 의존성을 분석합니다.  
 분석된 결과를 [OLIVE Platform](https://olive.kakao.com/)에 적용해서 확인할 수 있습니다.  
@@ -7,14 +7,14 @@ Kakao [OLIVE CLI](https://github.com/kakao/olive-cli)를 사용하여 소스코�
 
 ## Requirements
 
-- [officialkakao/olive-action](https://hub.docker.com/r/officialkakao/olive-action) Docker 이미지에 접근 가능해야 합니다
-- OLIVE 토큰(olive-token)이 유효해야 합니다
+- OLIVE 토큰(olive-token)이 유효해야 합니다. 토큰 생성 방법은 `olive-token` 항목을 참고하세요.
 
 ## 입력값 
 
 ### `olive-project-name`
 
-Olive 프로젝트 이름입니다. Default: 저장소 이름 (예: 'kakao/repo'의 경우 'repo')
+Olive 프로젝트 이름입니다.   
+기본값: 저장소 이름 (예: 'kakao/repo'의 경우 'repo')
 
 ### `olive-token`
 
@@ -27,12 +27,12 @@ Olive 프로젝트 이름입니다. Default: 저장소 이름 (예: 'kakao/repo'
 
 ### `source-path`
 
-분석할 소스코드 경로입니다. 
+분석할 소스코드 경로입니다.   
 기본값: `./`
 
 ### `user-config-path`
 
-사용자 정의 config 파일(user-config.yaml) 경로입니다. 이 파일은 OLIVE CLI의 `-c` 옵션으로 전달되어 기본 설정을 오버라이드합니다. 
+사용자 정의 config 파일(user-config.yaml) 경로입니다. 이 파일은 OLIVE CLI의 `-c` 옵션으로 전달되어 기본 설정을 오버라이드합니다.   
 기본값: `""` (사용하지 않음)
 
 ### `artifact-retention-days`
@@ -121,6 +121,8 @@ jobs:
 ```
 
 ### 사용자 정의 config 파일 사용
+사용자 정의 Config 파일은 github project 내에 존재해야 합니다.  
+아래 예시에서는 github project 최상단에 user-config.yaml 파일이 있는 상황입니다.
 
 ```yaml
 - name: Run OLIVE CLI Scanner with custom config

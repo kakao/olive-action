@@ -1,0 +1,268 @@
+name: "OLIVE Action"
+description: "OLIVE Action은 GitHub Actions에서 OLIVE CLI를 사용하여 오픈소스 라이선스 의무사항 준수를 지원합니다."
+author: "Kakao"
+branding:
+  icon: "shield"
+  color: "yellow"
+
+inputs:
+  olive-project-name:
+    description: "OLIVE Platform 프로젝트 이름 (100자 이하, 영문, '-', 공백 및 숫자만 입력 가능)"
+    required: false
+    default: ""
+  github-token:
+    description: "GitHub 토큰 (PR 코멘트 작성용)"
+    required: true
+  olive-token:
+    description: "OLIVE Platform API 토큰"
+    required: true
+  source-path:
+    description: "분석할 소스코드 경로"
+    required: false
+    default: "./"
+  user-config-path:
+    description: "사용자 정의 config 파일 경로 (user-config.yml)"
+    required: false
+    default: ""
+  artifact-retention-days:
+    description: "아티팩트 보관 기간 (일)"
+    required: false
+    default: "30"
+  comment-on-pr:
+    description: "PR에 코멘트 작성 여부"
+    required: false
+    default: "true"
+  analyze-only:
+    description: "분석만 수행하고 아티팩트 업로드/PR 코멘트 생략"
+    required: false
+    default: "false"
+  debug:
+    description: "디버그 모드 활성화 여부"
+    required: false
+    default: "false"
+
+outputs:
+  olive-version:
+    description: "OLIVE CLI 버전"
+    value: ${{ steps.olive-version.outputs.version }}
+  analysis-completed:
+    description: "분석 완료 여부"
+    value: ${{ steps.analyze.outputs.completed }}
+  component-completed:
+    description: "컴포넌트 분석 완료 여부"
+    value: ${{ steps.analyze-component.outputs.completed }}
+  license-completed:
+    description: "라이선스 분석 완료 여부"
+    value: ${{ steps.analyze-license.outputs.completed }}
+  apply-completed:
+    description: "OLIVE Platform 연동 여부"
+    value: ${{ steps.analyze-apply.outputs.completed }}
+  artifact-urls:
+    description: "업로드된 아티팩트 다운로드 URL"
+    value: ${{ steps.artifact-info.outputs.urls }}
+  olive-host:
+    description: "OLIVE Platform 호스트 URL"
+    value: ${{ steps.extract-olive-host.outputs.host }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Display repository information
+      shell: bash
+      run: |
+        ${{ github.action_path }}/scripts/display_repo_info.sh \
+          --repository "${{ github.repository }}" \
+          --ref_name "${{ github.ref_name }}" \
+          --sha "${{ github.sha }}" \
+          --workspace "${{ github.workspace }}"
+
+    - name: Validate required tokens
+      shell: bash
+      run: |
+        ${{ github.action_path }}/scripts/validate_tokens.sh \
+          --github-token "${{ inputs.github-token }}" \
+          --olive-token "${{ inputs.olive-token }}"
+
+    - name: Set project name
+      id: set-project-name
+      shell: bash
+      run: |
+        ${{ github.action_path }}/scripts/set_project_name.sh \
+          --project-name "${{ inputs.olive-project-name }}" \
+          --repository "${{ github.repository }}"
+
+    - name: Start OLIVE Action container (detached)
+      shell: bash
+      run: |
+        docker run -d --name olive-action-container \
+          -e OLIVE_PROJECT_NAME="${{ steps.set-project-name.outputs.project-name }}" \
+          -e OLIVE_TOKEN="${{ inputs.olive-token }}" \
+          -e GITHUB_OUTPUT="/tmp/github_output" \
+          -v ${{ github.workspace }}:/home/deploy/repository \
+          -v ${{ github.action_path }}/scripts:/olive-scripts \
+          -w /home/deploy/repository \
+          officialkakao/olive-action:v1.0.0 \
+          tail -f /dev/null
+
+    - name: Step 1 - Verify source location
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/verify_source_location.sh"
+
+    - name: Step 2 - OLIVE CLI Init
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/olive_cli_init.sh \
+          --project-name \"${{ steps.set-project-name.outputs.project-name }}\" \
+          --olive-token ${{ inputs.olive-token }} \
+          --source-path ${{ inputs.source-path }} \
+          --user-config-path \"${{ inputs.user-config-path }}\" \
+          --debug ${{ inputs.debug }}"
+
+    - name: Step 3 - OLIVE CLI Analyze
+      id: analyze
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/olive_cli_analyze.sh"
+        echo "completed=true" >> $GITHUB_OUTPUT
+
+    - name: Upload dependency analysis results
+      if: inputs.analyze-only == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-analysis
+        path: |
+          .olive/1/dependency.csv
+          .olive/1/dependency.json
+        retention-days: ${{ inputs.artifact-retention-days }}
+        if-no-files-found: warn
+
+    - name: Step 4 - OLIVE CLI Component
+      id: analyze-component
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/olive_cli_component.sh"
+        echo "completed=true" >> $GITHUB_OUTPUT
+
+    - name: Step 5 - OLIVE CLI License
+      id: analyze-license
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/olive_cli_license.sh"
+        echo "completed=true" >> $GITHUB_OUTPUT
+
+    - name: Step 6 - OLIVE CLI Apply
+      if: inputs.analyze-only == 'false'
+      id: analyze-apply
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/olive_cli_apply.sh"
+        echo "completed=true" >> $GITHUB_OUTPUT
+
+    - name: Upload apply results
+      if: inputs.analyze-only == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: apply-analysis
+        path: |
+          .olive/1/dependency.csv
+          .olive/1/dependency.json
+          .olive/1/mapping.csv
+          .olive/1/mapping.json
+          .olive/1/unmapping.csv
+        retention-days: ${{ inputs.artifact-retention-days }}
+        if-no-files-found: warn
+
+    - name: Upload local-config.yaml
+      if: inputs.analyze-only == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: local-config.yaml
+        path: .olive/local-config.yaml
+        retention-days: ${{ inputs.artifact-retention-days }}
+        if-no-files-found: warn
+
+    - name: Extract OLIVE Platform Host
+      id: extract-olive-host
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/extract_olive_host.sh"
+        if [ -f ".olive_host_output" ]; then
+          HOST=$(cat .olive_host_output)
+          echo "host=$HOST" >> $GITHUB_OUTPUT
+          echo "✅ GitHub Actions 출력에 설정된 host: $HOST"
+        else
+          echo "host=https://olive.kakao.com" >> $GITHUB_OUTPUT
+          echo "⚠️ 출력 파일이 없어 기본값 사용: https://olive.kakao.com"
+        fi
+
+    - name: Extract OLIVE CLI Version
+      id: olive-version
+      shell: bash
+      run: |
+        docker exec olive-action-container sh -c "/olive-scripts/extract_olive_version.sh"
+
+    - name: Get artifact info
+      id: artifact-info
+      if: inputs.analyze-only == 'false'
+      shell: bash
+      run: |
+        ${{ github.action_path }}/scripts/get_artifact_info.sh \
+          --server-url "${{ github.server_url }}" \
+          --repository "${{ github.repository }}" \
+          --run-id "${{ github.run_id }}"
+
+    - name: Comment PR with OLIVE Action Results
+      if: github.event_name == 'pull_request' && inputs.comment-on-pr == 'true' && inputs.analyze-only == 'false'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const script = require('${{ github.action_path }}/scripts/comment_pr.js');
+          await script({
+            github, 
+            context, 
+            core: {
+              getInput: (name) => {
+                const oliveHost = '${{ steps.extract-olive-host.outputs.host }}';
+                const inputs = {
+                  'olive-version': '${{ steps.olive-version.outputs.version }}' || 'Unknown',
+                  'run-url': '${{ steps.artifact-info.outputs.urls }}',
+                  'project-name': '${{ steps.set-project-name.outputs.project-name }}',
+                  'host': oliveHost && oliveHost.trim() !== '' ? oliveHost : 'https://olive.kakao.com',
+                };
+                return inputs[name];
+              }
+            }
+          });
+
+    - name: Comment PR with OLIVE Action Failure
+      if: failure() && github.event_name == 'pull_request' && inputs.comment-on-pr == 'true'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const script = require('${{ github.action_path }}/scripts/comment_pr_failure.js');
+          await script({
+            github, 
+            context, 
+            core: {
+              getInput: (name) => {
+                const inputs = {
+                  'project-name': '${{ steps.set-project-name.outputs.project-name }}',
+                };
+                return inputs[name];
+              }
+            }
+          });
+
+    - name: Clean up container
+      if: always()
+      shell: bash
+      run: |
+        ${{ github.action_path }}/scripts/cleanup.sh
+
+    - name: Finish
+      shell: bash
+      run: |
+        ${{ github.action_path }}/scripts/finish.sh

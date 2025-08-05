@@ -173,6 +173,11 @@ Action이 성공적으로 실행되면 다음과 같은 결과를 확인할 수 
 
 - **GitHub 정책**: 이 Action은 github.com에 정의된 GitHub Actions 정책을 따릅니다.
 
+## 면책조항
+
+카카오는 OLIVE Action을 통해 제공되는 모든 정보의 정확성, 신뢰도 등에 대해 어떠한 보증도 하지 않습니다.
+사용자는 전적으로 자기 책임 하에 OLIVE Action과 OLIVE Platform 을 사용하고, 카카오는 이와 관련하여 사용자 및 제3자에 대해 어떠한 책임도 지지 않습니다.
+
 ## License
 
 This software is licensed under the Apache 2 license, quoted below.
@@ -182,3 +187,6 @@ Copyright 2025 Kakao Corp. http://www.kakaocorp.com
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this project except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+## Quick Links
+- 문의하기 : <a href="http://pf.kakao.com/_ztlfK/chat"><img src="https://t1.kakaocdn.net/together_image/svg/footer_kakaotalk.svg" height="16px" width="16px"></a>&nbsp;&nbsp;&nbsp;[✉](mailto:opensource@kakaocorp.com)

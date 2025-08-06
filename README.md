@@ -124,15 +124,17 @@ Action의 동작을 제어하기 위한 입력값입니다. `with` 키워드를 
 
 ```yaml
 isOpenSource: false # 소스 코드 공개 여부 (기본값: false)
-excludePaths: # 분석에서 제외할 경로
+excludePaths: # 분석에서 제외할 경로 (기본값: 빈 목록)
   - "node_modules"
   - ".git"
   - "build"
-analysisType: "PARSER" # Gradle 빌드 분석 타입 (PARSER, BUILDER, 기본값: PARSER)
-onlyDirect: false # 간접의존성 분석 결과 포함 여부 (기본값: false)
-gradleBuildVariant: "" # Gradle 빌드 변형 (예: "debug", "release", "")
-excludeGradle: # Gradle 빌드 수행시 제외할 모듈 이름
-  - ":app"
+analysisType: "PARSER" # Gradle 의존성 분석 방식 ("PARSER" 또는 "BUILDER", 기본값: "PARSER")
+onlyDirect: false # 직접 의존성만 분석할지 여부 (기본값: false)
+gradleBuildVariant: ""
+# 분석할 Build Variant 지정 (예: "debug", "release", "freeDebug" 등, 기본값: "")
+# 값이 비어 있으면 모든 Build Variant에 대한 의존성이 포함됩니다.
+excludeGradle: # Gradle 빌드 수행 시 제외할 모듈 이름 목록 (기본값: 빈 목록)
+  - ":test"
 ```
 
 ## 실행 결과 (Results)

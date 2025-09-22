@@ -101,7 +101,7 @@ runs:
           -v ${{ github.workspace }}:/home/deploy/repository \
           -v ${{ github.action_path }}/scripts:/olive-scripts \
           -w /home/deploy/repository \
-          officialkakao/olive-action:v1.0.0 \
+          officialkakao/olive-action:v1.1.0 \
           tail -f /dev/null
 
     - name: Step 1 - Verify source location
@@ -112,7 +112,10 @@ runs:
     - name: Step 2 - OLIVE CLI Init
       shell: bash
       run: |
-        docker exec olive-action-container sh -c "/olive-scripts/olive_cli_init.sh \
+        docker exec -e GITHUB_SERVER_URL="${{ github.server_url }}" \
+          -e GITHUB_REPOSITORY="${{ github.repository }}" \
+          -e GITHUB_RUN_ID="${{ github.run_id }}" \
+          olive-action-container sh -c "/olive-scripts/olive_cli_init.sh \
           --project-name \"${{ steps.set-project-name.outputs.project-name }}\" \
           --olive-token ${{ inputs.olive-token }} \
           --source-path ${{ inputs.source-path }} \

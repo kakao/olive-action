@@ -109,7 +109,7 @@ Action의 동작을 제어하기 위한 입력값입니다. `with` 키워드를 
 ### 3\. 사용자 정의 `config` 파일 사용하기
 
 프로젝트에 사용자 정의 config 파일을 생성하여 OLIVE CLI의 세부 동작을 제어할 수 있습니다.
-아래 예시는 프로젝트 루트에 `user-config.yml` 파일을 사용하는 경우 입니다.
+아래 예시는 프로젝트 루트에 `user-config.yaml` 파일을 사용하는 경우 입니다.
 
 ```yaml
 - name: Run OLIVE Action with custom config
@@ -117,10 +117,10 @@ Action의 동작을 제어하기 위한 입력값입니다. `with` 키워드를 
   with:
     olive-token: ${{ secrets.OLIVE_TOKEN }}
     github-token: ${{ secrets.GITHUB_TOKEN }}
-    user-config-path: "./user-config.yml"
+    user-config-path: "./user-config.yaml"
 ```
 
-**`user-config.yml` 파일 예시:**
+**`user-config.yaml` 파일 예시:**
 
 ```yaml
 isOpenSource: false # 소스 코드 공개 여부 (기본값: false)

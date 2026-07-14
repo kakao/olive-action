@@ -70,27 +70,27 @@ LOCAL_CONFIG_FILE=".olive/local-config.yaml"
 if [ -f "$LOCAL_CONFIG_FILE" ]; then
   # runIdUrl 추가
   RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+  
+  # scanInfo 섹션에 jdk17Home과 runIdUrl 추가
+  # 먼저 resultPath 다음에 jdk17Home을 추가 (존재하지 않을 때만)
+  # resultPath: 라인의 실제 들여쓰기를 감지하여 동일한 들여쓰기 적용
+  INDENT=$(grep -m1 "resultPath:" "$LOCAL_CONFIG_FILE" | sed 's/[^ \t].*//')
 
-  # scanInfo 섹션에 jdk11Home과 runIdUrl 추가
-  # 먼저 resultPath 다음에 jdk11Home을 추가 (존재하지 않을 때만)
-  if ! grep -q "jdk11Home:" "$LOCAL_CONFIG_FILE"; then
-    sed -i '/scanInfo:/,/resultPath:/ {/resultPath:/ a\  jdk11Home: /opt/openjdk-11
-}' "$LOCAL_CONFIG_FILE"
+  if ! grep -q "jdk17Home:" "$LOCAL_CONFIG_FILE"; then
+    sed -i "/resultPath:/ a\\${INDENT}jdk17Home: /opt/openjdk-17" "$LOCAL_CONFIG_FILE"
   fi
 
   # runIdUrl이 이미 존재하는지 확인하고 값을 업데이트
   if grep -q "runIdUrl:" "$LOCAL_CONFIG_FILE"; then
-    # runIdUrl이 이미 존재하면 값을 업데이트
-    sed -i "s|runIdUrl:.*|runIdUrl: ${RUN_URL}|g" "$LOCAL_CONFIG_FILE"
+    sed -i "s|[[:space:]]*runIdUrl:.*|${INDENT}runIdUrl: ${RUN_URL}|g" "$LOCAL_CONFIG_FILE"
   else
-    # runIdUrl이 없으면 jdk11Home 다음에 추가
-    sed -i "/jdk11Home:/ a\\  runIdUrl: ${RUN_URL}" "$LOCAL_CONFIG_FILE"
+    sed -i "/jdk17Home:/ a\\${INDENT}runIdUrl: ${RUN_URL}" "$LOCAL_CONFIG_FILE"
   fi
 
   echo '📄 local-config.yaml 내용:'
   cat "$LOCAL_CONFIG_FILE"
 else
-  echo '⚠️ 경고: local-config.yaml 파일을 찾을 수 없습니다. jdk11Home 설정을 건너뜁니다.'
+  echo '⚠️ 경고: local-config.yaml 파일을 찾을 수 없습니다. jdk17Home 설정을 건너뜁니다.'
 fi
 
 echo "════════════════════════════════════════════════════════════════════════════════"

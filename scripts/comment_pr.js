@@ -126,7 +126,7 @@ function analyzeLicenseInfo(fs) {
     licenseInfo = fs.readFileSync(".olive/1/license_info.txt", "utf8").trim()
     licenseInfo = licenseInfo.replace(/^\s*[\r\n]/gm, "")
 
-    hasLicenses = !licenseInfo.includes("Licenses: [0]")
+    hasLicenses = !licenseInfo.includes("Licenses (0)")
 
     if (hasLicenses) {
       hasLicenseIssue = checkLicenseIssues(licenseInfo)
@@ -150,21 +150,20 @@ function checkLicenseIssues(licenseInfo) {
     const lines = licenseInfo.split("\n")
 
     for (const line of lines) {
-      // 테이블 데이터 행인지 확인 (숫자로 시작하고 | 구분자가 있는 행)
-      if (/^\s*\d+\s*\|/.test(line)) {
-        // 파이프(|)로 구분된 컬럼들을 분리
-        const columns = line.split("|").map((col) => col.trim())
+      // 테이블 데이터 행인지 확인 (│ 로 시작하고 숫자 ID가 있는 행, Go CLI 형식)
+      if (/^\s*│\s*\d+\s*│/.test(line)) {
+        // │ (U+2502)로 구분된 컬럼들을 분리하고 빈 셀 제거
+        const cells = line.split("│").map((col) => col.trim()).filter((col) => col !== "")
 
+        // cells: ["1", "Apache-2.0", "X", "url", "obligations"]
         // isIssued 컬럼은 3번째 컬럼 (인덱스 2)
-        if (columns.length >= 3) {
-          const isIssued = columns[2].trim()
+        if (cells.length >= 3) {
+          const isIssued = cells[2]
 
           // isIssued 컬럼에 "O" 또는 "0"이 있으면 이슈가 있는 라이선스
           if (isIssued === "O" || isIssued === "0") {
             console.log(
-              `이슈가 있는 라이선스 발견: ${
-                columns[1]?.trim() || "Unknown"
-              } (isIssued: ${isIssued})`
+              `이슈가 있는 라이선스 발견: ${cells[1] || "Unknown"} (isIssued: ${isIssued})`
             )
             return true
           }

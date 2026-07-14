@@ -101,7 +101,7 @@ runs:
           -v ${{ github.workspace }}:/home/deploy/repository \
           -v ${{ github.action_path }}/scripts:/olive-scripts \
           -w /home/deploy/repository \
-          officialkakao/olive-action:v1.4.0 \
+          officialkakao/olive-action:v1.5.0 \
           tail -f /dev/null
 
     - name: Step 1 - Verify source location

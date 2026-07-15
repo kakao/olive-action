@@ -16,41 +16,43 @@
 # SPDX-License-Identifier: Apache-2.0
 # License-Filename: LICENSE
 
-FROM eclipse-temurin:17-jdk-jammy as base
+FROM eclipse-temurin:21-jdk-jammy as base
 
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 ENV GRADLE_VERSION=8.13
-ENV GRADLE_VERSION_7_6_4=7.6.4
-ENV ORT_VERSION=34.0.0
-ENV CLI_VERSION=v2.7.0
-ENV OPENJDK11_VERSION=11.0.16_8
+ENV ORT_VERSION=82.1.0
+ENV CLI_VERSION=3.0.0
 
 ENV SBT_VERSION=1.10.0
-ENV RUST_VERSION=1.72.0
+ENV RUST_VERSION=1.93.1
 ENV BOWER_VERSION=1.8.14
-ENV NODEJS_VERSION=20.14.0
-ENV NPM_VERSION=10.8.3
+ENV NODEJS_VERSION=24.10.0
+ENV NPM_VERSION=11.4.0
 ENV PNPM_VERSION=9.9.0
 ENV YARN_VERSION=1.22.19
-ENV COCOAPODS_VERSION=1.15.2
-ENV RUBY_VERSION=3.3.5
+ENV COCOAPODS_VERSION=1.16.2
+ENV RUBY_VERSION=3.4.4
 ENV DART_VERSION=2.18.4
-ENV FLUTTER_VERSION=3.24.4
+ENV FLUTTER_VERSION=3.27.4
 
-ENV PYTHON_VERSION=3.11.10
-ENV PYENV_GIT_TAG=v2.4.13
-ENV CONAN_VERSION=1.64.1
-ENV PYTHON_INSPECTOR_VERSION=0.10.0
+ENV PYTHON_VERSION=3.13.5
+ENV PYENV_GIT_TAG=v2.6.11
+ENV CONAN_VERSION=2.21.0
+ENV PYTHON_INSPECTOR_VERSION=0.15.0
 ENV PYTHON_PIPENV_VERSION=2023.12.1
-ENV PYTHON_POETRY_VERSION=1.8.3
+ENV PYTHON_POETRY_VERSION=2.1.3
+ENV PYTHON_POETRY_PLUGIN_EXPORT_VERSION=1.9.0
 ENV PYTHON_SETUPTOOLS_VERSION=74.1.3
-ENV PIPTOOL_VERSION=24.0
-ENV SCANCODE_VERSION=32.2.1
+ENV PYTHON_SETUPTOOLS_RUST_VERSION=1.12.0
+ENV PIPTOOL_VERSION=25.3.0
+ENV SCANCODE_VERSION=32.5.0
 ENV PHP_VERSION=8.3
-ENV COMPOSER_VERSION=2.8.8
+ENV COMPOSER_VERSION=2.8.12
+
+ENV ANDROID_CMD_VERSION=13114758
 
 # Base package set
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -163,8 +165,10 @@ RUN pip install --no-cache-dir -U \
     conan=="$CONAN_VERSION" \
     pipenv=="$PYTHON_PIPENV_VERSION" \
     poetry=="$PYTHON_POETRY_VERSION" \
+    poetry-plugin-export=="$PYTHON_POETRY_PLUGIN_EXPORT_VERSION" \
     python-inspector=="$PYTHON_INSPECTOR_VERSION" \
-    setuptools=="$PYTHON_SETUPTOOLS_VERSION"
+    setuptools=="$PYTHON_SETUPTOOLS_VERSION" \
+    setuptools-rust=="$PYTHON_SETUPTOOLS_RUST_VERSION"
 
 FROM scratch AS python
 COPY --from=pythonbuild /opt/python /opt/python
@@ -262,7 +266,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     unzip \
     && sudo rm -rf /var/lib/apt/lists/*
 
-ARG ANDROID_CMD_VERSION=11076708
 ENV ANDROID_HOME=/opt/android-sdk
 
 RUN mkdir -p /tmp/android \
@@ -313,10 +316,10 @@ FROM base as ortbuild
 
 ENV ort_release_url=https://github.com/oss-review-toolkit/ort/releases/download/$ORT_VERSION/ort-$ORT_VERSION.tgz
 RUN curl -L ${ort_release_url} -o ort.tar.gz
-RUN tar -zxvf ort.tar.gz \
-    && chmod +x ort-$ORT_VERSION/bin/ort \
-    && mv ort-$ORT_VERSION /opt/ort \
-    && rm ort.tar.gz
+RUN tar -zxvf ort.tar.gz
+RUN mv ort-$ORT_VERSION /opt/ort
+RUN chmod +x /opt/ort
+RUN rm ort.tar.gz
 
 FROM scratch AS ortbin
 COPY --from=ortbuild /opt/ort /opt/ort
@@ -326,11 +329,12 @@ COPY --from=ortbuild /opt/ort /opt/ort
 # OLIVE CLI
 FROM base as clibuild
 
-ENV olivecli_release_url=https://github.com/kakao/olive-cli/releases/download/$CLI_VERSION/olive-cli-Linux-$CLI_VERSION-X64.tar.gz
+ENV olivecli_release_url=https://github.com/kakao/olive-cli/releases/download/v$CLI_VERSION/olive-cli-Linux-$CLI_VERSION-X64.tar.gz
 RUN curl -L ${olivecli_release_url} -o olive-cli.tar.gz \
     && tar -zxvf olive-cli.tar.gz \
     && mkdir -p /opt/olivecli \
-    && mv olive-cli /opt/olivecli/ \
+    && mv olive-cli /opt/olivecli/olive-cli \
+    && mv olive-analyzer.jar /opt/olivecli/olive-analyzer.jar \
     && chmod +x /opt/olivecli/olive-cli \
     && rm -rf olive-cli.tar.gz
 
@@ -353,30 +357,16 @@ COPY --from=gradlebuild /opt/gradle /opt/gradle
 #------------------------------------------------------------------------
 
 #------------------------------------------------------------------------
-# Gradle 7.6.4
-FROM base as gradle764build
+# OpenJDK 17
+FROM base as openjdk17build
 
-RUN curl -k -L -v -X GET https\://services.gradle.org/distributions/gradle-$GRADLE_VERSION_7_6_4-all.zip > gradle-$GRADLE_VERSION_7_6_4-all.zip
-RUN unzip gradle-$GRADLE_VERSION_7_6_4-all.zip
-RUN mv gradle-$GRADLE_VERSION_7_6_4 /opt/gradle \
-    && rm gradle-$GRADLE_VERSION_7_6_4-all.zip
-RUN sudo chmod +x /opt/gradle/bin/gradle
+RUN curl -L https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_linux_hotspot_17.0.12_7.tar.gz > openjdk-17.tar.gz \
+    && tar -xzf openjdk-17.tar.gz \
+    && mv jdk-17.0.12+7 /opt/openjdk-17 \
+    && rm openjdk-17.tar.gz
 
-FROM scratch AS gradle764bin
-COPY --from=gradle764build /opt/gradle /opt/gradle
-#------------------------------------------------------------------------
-
-#------------------------------------------------------------------------
-# OpenJDK 11
-FROM base as openjdk11build
-
-RUN curl -L https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.16%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz > openjdk-11.tar.gz \
-    && tar -xzf openjdk-11.tar.gz \
-    && mv jdk-11.0.16+8 /opt/openjdk-11 \
-    && rm openjdk-11.tar.gz
-
-FROM scratch AS openjdk11bin
-COPY --from=openjdk11build /opt/openjdk-11 /opt/openjdk-11
+FROM scratch AS openjdk17bin
+COPY --from=openjdk17build /opt/openjdk-17 /opt/openjdk-17
 #------------------------------------------------------------------------
 
 #------------------------------------------------------------------------
@@ -459,20 +449,14 @@ RUN mkdir -p $GRADLE_HOME
 COPY --from=gradlebin --chown=$USER:$USER /opt/gradle $GRADLE_HOME
 ENV PATH=$PATH:$GRADLE_HOME/bin
 
-# GRADLE 7 install
-ENV GRADLE_7_HOME=/kakao/program/gradle
-RUN sudo mkdir -p $GRADLE_7_HOME
-COPY --from=gradle764bin --chown=$USER:$USER /opt/gradle $GRADLE_7_HOME
-ENV PATH=$PATH:$GRADLE_7_HOME/bin
-
 RUN mkdir $HOME/.gradle
 COPY gradle.properties $HOME/.gradle/gradle.properties
 RUN sudo chown $USER:$USER $HOME/.gradle/gradle.properties
 
-# OpenJDK 11 install
-ENV JAVA_11_HOME=/opt/openjdk-11
-RUN mkdir -p $JAVA_11_HOME
-COPY --from=openjdk11bin --chown=$USER:$USER /opt/openjdk-11 $JAVA_11_HOME
+# OpenJDK 17 install
+ENV JDK_17_HOME=/opt/openjdk-17
+RUN mkdir -p $JDK_17_HOME
+COPY --from=openjdk17bin --chown=$USER:$USER /opt/openjdk-17 $JDK_17_HOME
 
 # PHP install
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -497,6 +481,7 @@ ENV PATH=$PATH:$ORT_HOME/bin
 
 # OLIVE CLI install
 ENV OLIVE_CLI_HOME=/kakao/program/olive-cli
+ENV OLIVE_ANALYZER_JAR=${OLIVE_CLI_HOME}/olive-analyzer.jar
 RUN sudo mkdir -p ${OLIVE_CLI_HOME}
 COPY --from=oliveclibin --chown=$USER:$USER /opt/olivecli/ ${OLIVE_CLI_HOME}/
 ENV PATH=$PATH:$OLIVE_CLI_HOME

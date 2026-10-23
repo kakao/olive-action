@@ -458,6 +458,21 @@ ENV JDK_17_HOME=/opt/openjdk-17
 RUN mkdir -p $JDK_17_HOME
 COPY --from=openjdk17bin --chown=$USER:$USER /opt/openjdk-17 $JDK_17_HOME
 
+# Block compromised eMudhra intermediate CA certificates (Oracle advisory, 2026-10-21)
+# Merge into each JDK's existing blocked.certs so that no existing entries are dropped
+RUN --mount=type=bind,source=security/blocked.certs,target=/tmp/blocked.certs \
+    for JDK_HOME in "$JAVA_HOME" "$JDK_17_HOME"; do \
+    BLOCKED_CERTS="$JDK_HOME/lib/security/blocked.certs" \
+    && test -f "$BLOCKED_CERTS" \
+    && { echo "Algorithm=SHA-256"; \
+    cat "$BLOCKED_CERTS" /tmp/blocked.certs | grep -v '^Algorithm' | tr 'a-f' 'A-F' | sort -u; \
+    } > /tmp/merged.certs \
+    && sudo cp /tmp/merged.certs "$BLOCKED_CERTS" \
+    && ! grep -vxF -f "$BLOCKED_CERTS" /tmp/blocked.certs \
+    || exit 1; \
+    done \
+    && rm /tmp/merged.certs
+
 # PHP install
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
